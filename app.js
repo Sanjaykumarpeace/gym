@@ -7,53 +7,32 @@
 
 // ── 1. Lazy Image Loading ──────────────────────────────────────
 (function initLazyLoad() {
-  // Use native lazy loading where available
-  if ('loading' in HTMLImageElement.prototype) {
-    document.querySelectorAll('img[data-src]').forEach(img => {
-      img.loading = 'lazy';
-    });
-    
-    // Still use IntersectionObserver for performance monitoring
-    if ('IntersectionObserver' in window) {
-      const observer = new IntersectionObserver(
-        (entries, obs) => {
-          entries.forEach(entry => {
-            if (!entry.isIntersecting) return;
-            const img = entry.target;
-            if (img.dataset.src && !img.src) {
-              img.src = img.dataset.src;
-              img.style.display = 'block';
-            }
-            if (img.dataset.src) {
-              const onLoad = () => {
-                img.classList.add('loaded');
-                img.removeAttribute('data-src');
-                // Mark parent containers as loaded for shimmer animation
-                const parent = img.closest('.gallery-item, .trainer-img-wrap, .video-thumb, .trans-side, .ig-post');
-                if (parent) parent.classList.add('loaded');
-              };
-              img.addEventListener('load', onLoad, { once: true });
-              img.addEventListener('error', onLoad, { once: true });
-              obs.unobserve(img);
-            }
-          });
-        },
-        { rootMargin: '400px 0px', threshold: 0 }
-      );
-      
-      document.querySelectorAll('img.lazy[data-src]').forEach(img => observer.observe(img));
+  const lazyImages = document.querySelectorAll('img.lazy[data-src]');
+  if (!lazyImages.length) return;
+
+  const markDone = img => {
+    img.classList.add('loaded');
+    img.removeAttribute('data-src');
+    const parent = img.closest('.gallery-item, .trainer-img-wrap, .video-thumb, .trans-side, .ig-post');
+    if (parent) parent.classList.add('loaded');
+  };
+
+  const loadImage = img => {
+    if (!img.dataset.src) return;
+    img.decoding = 'async';
+    img.loading = 'lazy';
+    if (img.complete && img.currentSrc) {
+      markDone(img);
+      return;
     }
-    return;
-  }
+    img.addEventListener('load', () => markDone(img), { once: true });
+    img.addEventListener('error', () => markDone(img), { once: true });
+    if (!img.src) img.src = img.dataset.src;
+  };
 
   // Fallback for older browsers
   if (!('IntersectionObserver' in window)) {
-    document.querySelectorAll('img.lazy').forEach(img => {
-      if (img.dataset.src) img.src = img.dataset.src;
-      img.classList.add('loaded');
-      const parent = img.closest('.gallery-item, .trainer-img-wrap, .video-thumb, .trans-side, .ig-post');
-      if (parent) parent.classList.add('loaded');
-    });
+    lazyImages.forEach(loadImage);
     return;
   }
 
@@ -62,25 +41,14 @@
       entries.forEach(entry => {
         if (!entry.isIntersecting) return;
         const img = entry.target;
-        if (img.dataset.src) {
-          img.src = img.dataset.src;
-          const onLoad = () => {
-            img.classList.add('loaded');
-            img.removeAttribute('data-src');
-            // Mark parent containers as loaded for shimmer animation
-            const parent = img.closest('.gallery-item, .trainer-img-wrap, .video-thumb, .trans-side, .ig-post');
-            if (parent) parent.classList.add('loaded');
-          };
-          img.addEventListener('load', onLoad, { once: true });
-          img.addEventListener('error', onLoad, { once: true });
-        }
+        loadImage(img);
         obs.unobserve(img);
       });
     },
-    { rootMargin: '400px 0px', threshold: 0.01 }
+    { rootMargin: '700px 0px', threshold: 0.01 }
   );
 
-  document.querySelectorAll('img.lazy').forEach(img => observer.observe(img));
+  lazyImages.forEach(img => observer.observe(img));
 })();
 
 // ── 2. Scroll-reveal Animation ────────────────────────────────
@@ -127,11 +95,14 @@
   const navLinks = document.querySelectorAll('.nav-link, .nav-cta');
 
   // Scroll state
-  let lastScroll = 0;
+  let ticking = false;
   const onScroll = () => {
-    const y = window.scrollY;
-    nav.classList.toggle('scrolled', y > 40);
-    lastScroll = y;
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+      ticking = false;
+    });
   };
 
   window.addEventListener('scroll', onScroll, { passive: true });

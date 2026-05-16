@@ -53,7 +53,6 @@ img {
   display: block;
   max-width: 100%;
   height: auto;
-  will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
@@ -215,9 +214,10 @@ input, select, textarea {
   left: 0;
   right: 0;
   z-index: 1000;
-  height: var(--nav-h);
+  min-height: var(--nav-h);
   background: transparent;
-  transition: background .3s ease, box-shadow .3s ease;
+  transition: background .25s ease, box-shadow .25s ease;
+  isolation: isolate;
 }
 
 .nav.scrolled {
@@ -232,10 +232,12 @@ input, select, textarea {
   align-items: center;
   justify-content: space-between;
   height: 100%;
+  min-height: var(--nav-h);
   padding: 0 clamp(10px, 3vw, 20px);
   max-width: 1200px;
   margin: 0 auto;
   gap: 12px;
+  position: relative;
 }
 
 .nav-logo {
@@ -245,6 +247,9 @@ input, select, textarea {
   text-decoration: none;
   flex-shrink: 0;
   min-width: 0;
+  max-width: calc(100% - 64px);
+  position: relative;
+  z-index: 2;
 }
 
 .logo-icon {
@@ -260,6 +265,7 @@ input, select, textarea {
   color: var(--pure);
   letter-spacing: .04em;
   white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 
@@ -268,11 +274,16 @@ input, select, textarea {
 .nav-toggle {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: clamp(6px, 1.5vw, 8px);
-  z-index: 1001;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  z-index: 2;
   flex-shrink: 0;
   margin-left: auto;
+  touch-action: manipulation;
 }
 
 .nav-toggle span {
@@ -294,6 +305,7 @@ input, select, textarea {
   top: var(--nav-h);
   left: 0;
   right: 0;
+  z-index: 1;
   background: rgba(10,10,10,.98);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -301,13 +313,17 @@ input, select, textarea {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  transform: translateY(-110%);
-  transition: transform .3s var(--ease-out);
+  transform: translate3d(0, -120%, 0);
+  transition: transform .25s var(--ease-out), visibility .25s ease;
   border-top: 1px solid rgba(255,255,255,.08);
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .nav-menu.open {
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .nav-link {
